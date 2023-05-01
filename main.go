@@ -12,15 +12,35 @@ func AdminHandler() http.HandlerFunc {
 }
 
 func RequestMethodGetMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}) // TODO: replace this
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			w.Write([]byte("Method is not allowed"))
+			return
+		}
+
+		// jika method adalah get
+		next.ServeHTTP(w, r)
+	}) 
 }
 
 func AdminMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}) // TODO: replace this
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("role") != "ADMIN" {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("Role not authorized"))
+			return
+		} 
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func main() {
-	// TODO: answer here
+	mux := http.DefaultServeMux
+	mux.HandleFunc("/admin", AdminHandler())
 
-	http.ListenAndServe("localhost:8080", nil)
+	handler := RequestMethodGetMiddleware(AdminMiddleware(mux))
+
+	http.ListenAndServe("localhost:8080", handler)
 }
